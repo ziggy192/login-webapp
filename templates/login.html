@@ -2,18 +2,20 @@
 
 <h1>Login</h1>
 <form method="POST">
-    <label>Username:</label><br/>
-    <input type="text" name="username"><br/>
-    <label>Password:</label><br/>
-    <input type="password" name="password"><br/>
+    <label>
+        Username <input type="text" name="username">
+    </label><br/>
+    <label>
+        Password <input type="password" name="password">
+    </label><br/>
     <input type="submit">
 </form>
 
 <!--todo login with google-->
 <!--todo eit the login_uri-->
 <div id="g_id_onload"
-     data-client_id="588338350106-u3e7ddin0njjervl05577fioq678nbi5.apps.googleusercontent.com"
-     data-login_uri="http://localhost:9090/auth"
+     data-client_id="{{.GoogleClientID}}"
+     data-login_uri="{{.LoginURI}}"
      data-auto_prompt="false">
 </div>
 

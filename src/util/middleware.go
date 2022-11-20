@@ -11,6 +11,6 @@ func LoggingMiddleware(next http.Handler) http.Handler {
 		startTime := time.Now()
 		next.ServeHTTP(w, r)
 		runTime := time.Since(startTime)
-		logger.Info("request", r.RemoteAddr, r.Method, r.URL, runTime, ReadBody(r.Body))
+		logger.Info(r.Context(), "request", r.RemoteAddr, r.Method, r.URL, runTime, ReadBody(r.Body))
 	})
 }

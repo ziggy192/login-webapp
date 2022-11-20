@@ -3,6 +3,7 @@ package model
 import "time"
 
 type Profile struct {
+	ID        int       `json:"ID"`
 	FullName  string    `json:"full_name"`
 	Phone     string    `json:"phone"`
 	Email     string    `json:"email"`

@@ -3,6 +3,7 @@ package util
 import (
 	"fmt"
 	"os"
+	"strconv"
 )
 
 // EnvironmentKey key for setting the environment
@@ -25,6 +26,21 @@ func GetEnvString(key string, fallback string) string {
 		panic(fmt.Errorf("undefined environment variable %s", key))
 	}
 	return apiRoot
+}
+
+func GetEnvInt(key string, fallback int) int {
+	value := os.Getenv(key)
+	if len(value) == 0 {
+		if IsDevelopmentEnvironment() {
+			return fallback
+		}
+		panic(fmt.Errorf("undefined environment variable %s", key))
+	}
+	n, err := strconv.ParseInt(value, 10, 64)
+	if err != nil {
+		panic(err)
+	}
+	return int(n)
 }
 
 // Environment returns the current running environment
