@@ -1,37 +1,55 @@
 package api
 
 import (
+	"bitbucket.org/ziggy192/ng_lu/src/api/auth"
 	"bitbucket.org/ziggy192/ng_lu/src/api/model"
 	"bitbucket.org/ziggy192/ng_lu/src/logger"
 	"bitbucket.org/ziggy192/ng_lu/src/util"
 	"encoding/json"
-	"github.com/golang-jwt/jwt/v4"
 	"google.golang.org/api/idtoken"
 	"net/http"
-	"time"
 )
 
 func (a *App) handleLogin(w http.ResponseWriter, r *http.Request) {
-	var loginRequest model.LoginRequest
-	err := json.NewDecoder(r.Body).Decode(&loginRequest)
+	ctx := r.Context()
+	var loginR model.LoginRequest
+	err := json.NewDecoder(r.Body).Decode(&loginR)
 	if err != nil {
-		_ = util.SendJSON(r.Context(), w, http.StatusBadRequest, "invalid request", nil)
+		_ = util.SendJSON(ctx, w, http.StatusBadRequest, "invalid request", nil)
 		return
 	}
 
-	if err = loginRequest.Validate(); err != nil {
-		_ = util.SendJSON(r.Context(), w, http.StatusBadRequest, err.Error(), nil)
+	acc, err := a.DBStores.Account.FindAccountByUserName(ctx, loginR.Username)
+	if err != nil {
+		logger.Err(ctx, err)
+		_ = util.SendError(ctx, w, err)
+		return
+	}
+
+	if acc == nil {
+		_ = util.SendJSON(ctx, w, http.StatusUnauthorized, "username entered does not exist", nil)
+		return
+	}
+
+	if acc.IsCorrectPassword(loginR.Password) {
+		_ = util.SendJSON(ctx, w, http.StatusUnauthorized, "password is incorrect", nil)
 		return
 	}
 
 }
 
 func (a *App) handleSignup(w http.ResponseWriter, r *http.Request) {
-	//account, err := a.AccountStore.NewAccount(loginRequest.Username, loginRequest.Password)
-	//if err != nil {
-	//	_ = util.SendError(w, err)
-	//	return
-	//}
+	var signupR model.SignupRequest
+	err := json.NewDecoder(r.Body).Decode(&signupR)
+	if err != nil {
+		_ = util.SendJSON(r.Context(), w, http.StatusBadRequest, "invalid request", nil)
+		return
+	}
+
+	if err = signupR.Validate(); err != nil {
+		_ = util.SendJSON(r.Context(), w, http.StatusBadRequest, err.Error(), nil)
+		return
+	}
 }
 
 func (a *App) handleLoginGoogle(w http.ResponseWriter, r *http.Request) {
@@ -70,7 +88,7 @@ func (a *App) handleLoginGoogle(w http.ResponseWriter, r *http.Request) {
 	// todo lookup database to signup or login with google account
 	email := tokenPayload.Claims["email"].(string)
 
-	acc, err := a.DBStores.AccountStore.FindAccountByUserName(ctx, email)
+	acc, err := a.DBStores.Account.FindAccountByUserName(ctx, email)
 	if err != nil {
 		logger.Err(ctx, err)
 		_ = util.SendError(ctx, w, err)
@@ -78,15 +96,14 @@ func (a *App) handleLoginGoogle(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if acc == nil {
-		// todo create acc
 		googleID := tokenPayload.Subject
-		if err := a.DBStores.AccountStore.CreateAccountGoogle(ctx, email, googleID); err != nil {
+		if err := a.DBStores.Account.CreateAccountGoogle(ctx, email, googleID); err != nil {
 			logger.Err(ctx, err)
 			_ = util.SendError(ctx, w, err)
 			return
 		}
 
-		acc, err = a.DBStores.AccountStore.FindAccountByUserName(ctx, email)
+		acc, err = a.DBStores.Account.FindAccountByUserName(ctx, email)
 		if err != nil {
 			logger.Err(ctx, err)
 			_ = util.SendError(ctx, w, err)
@@ -94,40 +111,36 @@ func (a *App) handleLoginGoogle(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		"sub": acc.Username,
-		"iat": time.Now().Unix(),
-	})
-
-	signedString, err := token.SignedString([]byte(a.Config.AuthSecret))
+	signed, err := a.Authenticator.SignUserJWT(ctx, acc.Username)
 	if err != nil {
-		logger.Err(ctx, err)
 		_ = util.SendError(ctx, w, err)
 		return
 	}
 
 	data := map[string]any{
-		"access_token": signedString,
+		"access_token": signed,
 	}
 	_ = util.SendJSON(ctx, w, 200, "login successfully", data)
 }
 
 func (a *App) handleGetProfile(w http.ResponseWriter, r *http.Request) {
-	// todo get profile from database by email
+	username := auth.GetUsername(r.Context())
+	// todo get profile from database by username
 	p := &model.Profile{
 		FullName: "nghia api",
 		Phone:    "something",
-		Email:    r.Context().Value(contextKeyUser).(string),
+		Email:    username,
 	}
 	_ = util.SendJSON(r.Context(), w, http.StatusOK, "get profile successfully", p)
 }
 
 func (a *App) handleSaveProfile(w http.ResponseWriter, r *http.Request) {
-	// todo get profile by email
+	username := auth.GetUsername(r.Context())
+	// todo get profile by username
 	p := &model.Profile{
 		FullName: "nghia api",
 		Phone:    "something",
-		Email:    r.Context().Value(contextKeyUser).(string),
+		Email:    username,
 	}
 	_ = util.SendJSON(r.Context(), w, http.StatusOK, "save profile successfully", p)
 }

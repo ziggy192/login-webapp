@@ -5,12 +5,12 @@ import (
 	"net/mail"
 )
 
-type LoginRequest struct {
+type SignupRequest struct {
 	Username string `json:"username"`
 	Password string `json:"password"`
 }
 
-func (l *LoginRequest) Validate() error {
+func (l *SignupRequest) Validate() error {
 	if len(l.Username) == 0 || len(l.Password) == 0 {
 		return fmt.Errorf("empty username or password")
 	}
@@ -19,4 +19,9 @@ func (l *LoginRequest) Validate() error {
 		return fmt.Errorf("invalid email")
 	}
 	return nil
+}
+
+type LoginRequest struct {
+	Username string `json:"username"`
+	Password string `json:"password"`
 }

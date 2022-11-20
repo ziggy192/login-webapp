@@ -20,7 +20,7 @@ type DBStores struct {
 	DB     *sql.DB
 	Config *config.MySQLConfig
 
-	AccountStore *AccountStore
+	Account *AccountStore
 }
 
 // NewDBStores returns a new instance of DBStores
@@ -32,9 +32,9 @@ func NewDBStores(ctx context.Context, config *config.MySQLConfig) (*DBStores, er
 	}
 
 	return &DBStores{
-		DB:           database,
-		Config:       config,
-		AccountStore: NewAccountStore(database),
+		DB:      database,
+		Config:  config,
+		Account: NewAccountStore(database),
 	}, nil
 }
 
