@@ -1,0 +1,29 @@
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+
+<h1>Login</h1>
+<form method="POST">
+    <label>Username:</label><br/>
+    <input type="text" name="username"><br/>
+    <label>Password:</label><br/>
+    <input type="password" name="password"><br/>
+    <input type="submit">
+</form>
+
+<!--todo login with google-->
+<!--todo eit the login_uri-->
+<div id="g_id_onload"
+     data-client_id="588338350106-u3e7ddin0njjervl05577fioq678nbi5.apps.googleusercontent.com"
+     data-login_uri="http://localhost:9090/auth"
+     data-auto_prompt="false">
+</div>
+
+<div class="g_id_signin"
+     data-type="standard"
+     data-size="large"
+     data-theme="outline"
+     data-text="sign_in_with"
+     data-shape="rectangular"
+     data-logo_alignment="left">
+</div>
+<br/>
+<a href="/signup">Dont have an account ? Sign-up here</a>
