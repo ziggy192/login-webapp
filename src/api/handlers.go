@@ -12,14 +12,14 @@ import (
 
 func (a *App) handleLogin(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	var loginR model.LoginRequest
-	err := json.NewDecoder(r.Body).Decode(&loginR)
+	var rqBody model.LoginRequest
+	err := json.NewDecoder(r.Body).Decode(&rqBody)
 	if err != nil {
 		_ = util.SendJSON(ctx, w, http.StatusBadRequest, "invalid request", nil)
 		return
 	}
 
-	acc, err := a.DBStores.Account.FindAccountByUserName(ctx, loginR.Username)
+	acc, err := a.DBStores.Account.FindAccountByUserName(ctx, rqBody.Username)
 	if err != nil {
 		logger.Err(ctx, err)
 		_ = util.SendError(ctx, w, err)
@@ -31,7 +31,7 @@ func (a *App) handleLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if acc.IsCorrectPassword(loginR.Password) {
+	if acc.IsCorrectPassword(rqBody.Password) {
 		_ = util.SendJSON(ctx, w, http.StatusUnauthorized, "password is incorrect", nil)
 		return
 	}
@@ -39,17 +39,39 @@ func (a *App) handleLogin(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *App) handleSignup(w http.ResponseWriter, r *http.Request) {
-	var signupR model.SignupRequest
-	err := json.NewDecoder(r.Body).Decode(&signupR)
+	ctx := r.Context()
+	var rqBody model.SignupRequest
+	err := json.NewDecoder(r.Body).Decode(&rqBody)
 	if err != nil {
 		_ = util.SendJSON(r.Context(), w, http.StatusBadRequest, "invalid request", nil)
 		return
 	}
 
-	if err = signupR.Validate(); err != nil {
+	if err = rqBody.Validate(); err != nil {
 		_ = util.SendJSON(r.Context(), w, http.StatusBadRequest, err.Error(), nil)
 		return
 	}
+
+	account, err := model.NewAccount(ctx, rqBody.Username, rqBody.Password)
+	if err != nil {
+		_ = util.SendError(r.Context(), w, err)
+		return
+	}
+
+	err = a.DBStores.Account.CreateAccount(ctx, account.Username, account.HashedPassword)
+	if err != nil {
+		_ = util.SendError(r.Context(), w, err)
+		return
+	}
+
+	// todo return access token also
+	jwt, err := a.Authenticator.SignUserJWT(ctx, account.Username)
+	if err != nil {
+		_ = util.SendError(r.Context(), w, err)
+		return
+	}
+	resp := &model.TokenResponse{AccessToken: jwt}
+	_ = util.SendJSON(ctx, w, http.StatusOK, "signed up successfully", resp)
 }
 
 func (a *App) handleLoginGoogle(w http.ResponseWriter, r *http.Request) {
@@ -117,10 +139,8 @@ func (a *App) handleLoginGoogle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	data := map[string]any{
-		"access_token": signed,
-	}
-	_ = util.SendJSON(ctx, w, 200, "login successfully", data)
+	resp := &model.TokenResponse{AccessToken: signed}
+	_ = util.SendJSON(ctx, w, 200, "login successfully", resp)
 }
 
 func (a *App) handleGetProfile(w http.ResponseWriter, r *http.Request) {

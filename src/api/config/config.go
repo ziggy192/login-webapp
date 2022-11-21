@@ -3,16 +3,18 @@ package config
 import "bitbucket.org/ziggy192/ng_lu/src/util"
 
 type Config struct {
-	AuthSecret string
-	Port       string
-	MySQL      *MySQLConfig
+	AuthSecret             string
+	Port                   string
+	MySQL                  *MySQLConfig
+	JWTExpiresAfterMinutes int
 }
 
 func New() *Config {
 	return &Config{
-		AuthSecret: util.GetEnvString("AUTH_SECRET", "test_secret"),
-		Port:       util.GetEnvString("PORT", "8080"),
-		MySQL:      NewMySQLConfig(),
+		AuthSecret:             util.GetEnvString("AUTH_SECRET", "test_secret"),
+		Port:                   util.GetEnvString("PORT", "8080"),
+		MySQL:                  NewMySQLConfig(),
+		JWTExpiresAfterMinutes: util.GetEnvInt("JWT_EXPIRES_AFTER_MINUTES", 300),
 	}
 }
 

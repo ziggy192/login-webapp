@@ -18,3 +18,7 @@ func (b *BaseResponse) UnmarshalData(v any) error {
 	}
 	return json.Unmarshal(marshal, v)
 }
+
+type TokenResponse struct {
+	AccessToken string `json:"access_token"`
+}

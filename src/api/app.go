@@ -28,7 +28,7 @@ func NewApp(ctx context.Context) (*App, error) {
 	a := &App{
 		Config:        cfg,
 		DBStores:      dbStores,
-		Authenticator: auth.NewAuthenticator([]byte(cfg.AuthSecret)),
+		Authenticator: auth.NewAuthenticator(cfg),
 	}
 
 	a.setupRoutes()
@@ -37,13 +37,13 @@ func NewApp(ctx context.Context) (*App, error) {
 
 func (a *App) setupRoutes() {
 	r := mux.NewRouter()
-	r.HandleFunc("/login", a.handleLogin).Methods("POST")
-	r.HandleFunc("/login_google", a.handleLoginGoogle).Methods("POST")
-	r.HandleFunc("/signup", a.handleSignup).Methods("POST")
+	r.HandleFunc("/login", a.handleLogin).Methods(http.MethodPost)
+	r.HandleFunc("/login_google", a.handleLoginGoogle).Methods(http.MethodPost)
+	r.HandleFunc("/signup", a.handleSignup).Methods(http.MethodPost)
 
 	profileR := r.PathPrefix("/profile").Subrouter()
-	profileR.HandleFunc("", a.handleGetProfile).Methods("GET") // get profile by id using the jwt token
-	profileR.HandleFunc("", a.handleSaveProfile).Methods("PUT")
+	profileR.HandleFunc("", a.handleGetProfile).Methods(http.MethodGet)
+	profileR.HandleFunc("", a.handleSaveProfile).Methods(http.MethodPut)
 	profileR.Use(NewAuthMiddleware(a.Authenticator).Middleware)
 
 	r.Use(util.LoggingMiddleware)

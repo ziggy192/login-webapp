@@ -7,7 +7,6 @@ create table if not exists accounts
         primary key,
     `hashed_password` varchar(255) not null default '',
     `google_id`       varchar(255) not null default '',
-    `last_logout`     timestamp    not null default 0,
     `created_at`      timestamp             default CURRENT_TIMESTAMP null,
     `updated_at`      timestamp             default CURRENT_TIMESTAMP null on update CURRENT_TIMESTAMP
 );

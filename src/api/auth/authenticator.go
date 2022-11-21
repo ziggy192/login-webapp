@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"bitbucket.org/ziggy192/ng_lu/src/api/config"
 	"bitbucket.org/ziggy192/ng_lu/src/logger"
 	"context"
 	"errors"
@@ -10,15 +11,19 @@ import (
 	"time"
 )
 
+const defaultIssuer = "ng_lu"
+
 type Authenticator struct {
-	Secret []byte
+	Secret              []byte
+	ExpiresAfterMinutes int
 }
 
-func NewAuthenticator(secret []byte) *Authenticator {
-	return &Authenticator{Secret: secret}
+func NewAuthenticator(cfg *config.Config) *Authenticator {
+	return &Authenticator{
+		Secret:              []byte(cfg.AuthSecret),
+		ExpiresAfterMinutes: cfg.JWTExpiresAfterMinutes,
+	}
 }
-
-const DefaultIssuer = "ng_lu"
 
 // SignUserJWT creates a new JWT token signed by HMAC method
 func (a *Authenticator) SignUserJWT(ctx context.Context, username string) (string, error) {
@@ -35,14 +40,15 @@ func (a *Authenticator) SignUserJWT(ctx context.Context, username string) (strin
 	}
 
 	claims := jwt.RegisteredClaims{
-		Issuer:   DefaultIssuer,
-		Subject:  username,
-		IssuedAt: jwt.NewNumericDate(time.Now()),
-		ID:       tokenUUID.String(),
+		Issuer:    defaultIssuer,
+		Subject:   username,
+		ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Duration(a.ExpiresAfterMinutes) * time.Minute)),
+		IssuedAt:  jwt.NewNumericDate(time.Now()),
+		ID:        tokenUUID.String(),
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 
-	signed, err := token.SignedString([]byte(a.Secret))
+	signed, err := token.SignedString(a.Secret)
 	if err != nil {
 		logger.Err(ctx, err)
 		return "", err
