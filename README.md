@@ -1,29 +1,23 @@
 # README #
 
-This README would normally document whatever steps are necessary to get your application up and running.
+A Profile management site that integrate with Google Sign In with high security level 
 
-### What is this repository for? ###
+### How to run in local ? ###
 
-* Quick summary
-* Version
-* [Learn Markdown](https://bitbucket.org/tutorials/markdowndemo)
+Start docker compose for db and redis
+```shell
+make up
+```
 
-### How do I get set up? ###
+Start api server 
+```shell
+make api
+```
 
-* Summary of set up
-* Configuration
-* Dependencies
-* Database configuration
-* How to run tests
-* Deployment instructions
+Start frontend server
+```shell
+make frontend
+```
 
-### Contribution guidelines ###
-
-* Writing tests
-* Code review
-* Other guidelines
-
-### Who do I talk to? ###
-
-* Repo owner or admin
-* Other community or team contact
+### Contacts ###
+nghialuu.it@gmail.com
