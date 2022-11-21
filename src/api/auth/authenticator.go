@@ -64,7 +64,7 @@ func (a *Authenticator) SignUserJWT(ctx context.Context, username string) (strin
 func (a *Authenticator) VerifyUserJWT(ctx context.Context, tokenString string) (*jwt.RegisteredClaims, error) {
 	claims, err := parseWithClaims(a.secret, tokenString)
 	if err != nil {
-		logger.Err(ctx, err)
+		logger.Err(ctx, err, tokenString)
 		return &claims, err
 	}
 

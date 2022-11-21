@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 )
 
@@ -35,6 +36,7 @@ func (a *App) fetchProfile(ctx context.Context, accessToken string) (model.Profi
 		logger.Err(ctx, err)
 		return model.Profile{}, nil, err
 	}
+	logger.Info(ctx, "response", fmt.Sprintf("%+v", resp))
 	return p, resp, nil
 }
 
@@ -69,5 +71,6 @@ func (a *App) putProfile(ctx context.Context, accessToken string, profile model.
 		logger.Err(ctx, err)
 		return model.Profile{}, nil, err
 	}
+	logger.Info(ctx, "response", fmt.Sprintf("%+v", resp))
 	return p, resp, nil
 }

@@ -1,17 +1,18 @@
 <h1>Enter Profile Information</h1>
 <form method="POST">
     <label>
-        Full Name <input type="text" name="full_name">
+        Full Name <input type="text" name="full_name" value="{{.FullName}}">
     </label><br/>
     <label>
         Phone <input type="text"
                      pattern="^[+]*[(]{0,1}[0-9]{1,4}[)]{0,1}[-\s\./0-9]*$"
                      oninvalid="this.setCustomValidity('invalid phone number')"
                      oninput="this.setCustomValidity('')"
+                     value="{{.Phone}}"
                      name="phone">
     </label><br/>
     <label>
-        Email <input type="email" name="email">
+        Email <input type="email" name="email" value="{{.Email}}">
     </label><br/>
     <input type="submit" value="Save &amp; Continue">
 </form>

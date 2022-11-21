@@ -53,7 +53,7 @@ func (a *App) setupRoutes() {
 	r.HandleFunc("/login", a.handleLogin).Methods(http.MethodPost)
 	r.HandleFunc("/login_google", a.handleLoginGoogle).Methods(http.MethodPost)
 	r.HandleFunc("/signup", a.handleSignup).Methods(http.MethodPost)
-	r.HandleFunc("/logout", a.handleLogout).Methods(http.MethodPost).Subrouter().Use(authMiddleware.Middleware)
+	r.Handle("/logout", authMiddleware.Middleware(http.HandlerFunc(a.handleLogout))).Methods(http.MethodPost)
 
 	profileR := r.PathPrefix("/profile").Subrouter()
 	profileR.HandleFunc("", a.handleGetProfile).Methods(http.MethodGet)

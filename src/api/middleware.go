@@ -34,9 +34,9 @@ func (a *AuthMiddleware) Middleware(next http.Handler) http.Handler {
 		if err != nil {
 			logger.Err(ctx, err)
 			_ = util.SendJSON(ctx, w, http.StatusUnauthorized, "invalid token", nil)
+			return
 		}
 
-		// todo check if issue at after last_logout
 		username := claims.Subject
 		logger.Info(ctx, "authenticated user", username, fmt.Sprintf("claims %+v", *claims))
 		r = r.WithContext(auth.SaveClaims(r.Context(), claims))

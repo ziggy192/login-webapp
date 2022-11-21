@@ -62,6 +62,8 @@ func (a *App) handlePostLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	logger.Info(ctx, "response", fmt.Sprintf("%+v", response))
+
 	if response.StatusCode == http.StatusUnauthorized || response.StatusCode == http.StatusForbidden {
 		logger.Info(ctx, "unauthorized", "status", response.StatusCode, "message", response.Message)
 		a.renderLoginPage(w, &model.ErrorPage{ErrorMessage: response.Message})
@@ -143,6 +145,8 @@ func (a *App) handlePostSignup(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	logger.Info(ctx, "response", fmt.Sprintf("%+v", response))
+
 	if !util.StatusSuccess(response.StatusCode) {
 		logger.Err(ctx, "error from server", "response", fmt.Sprintf("%+v", response))
 		a.renderSignupPage(w, &model.ErrorPage{ErrorMessage: response.Message})
@@ -155,17 +159,18 @@ func (a *App) handlePostSignup(w http.ResponseWriter, r *http.Request) {
 
 func (a *App) handleLogout(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	// todo call api to logout
 	cookie, err := r.Cookie(cookieKeyAccessToken)
 	if err != nil {
+		logger.Info(ctx, "cannot find access token, redirect to login anyway...")
 		http.Redirect(w, r, "/", http.StatusFound)
 		return
 	}
+	accessToken := cookie.Value
+
 	cookie.MaxAge = -1
 	cookie.Value = ""
 	http.SetCookie(w, cookie)
 
-	accessToken := cookie.Value
 	request, err := http.NewRequest(http.MethodPost, a.Config.APIRoot+pathLogout, nil)
 	requestID := logger.GetRequestID(ctx)
 	if len(requestID) > 0 {
@@ -178,11 +183,12 @@ func (a *App) handleLogout(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	request.Header.Set(headerAuthorization, "Bearer "+accessToken)
-	_, err = http.DefaultClient.Do(request) // ignore response because logout error
+	logger.Info(ctx, "request", request)
+	resp, err := http.DefaultClient.Do(request) // ignore response because logout error
 	if err != nil {
 		logger.Err(ctx, err) // error should not interrupt logout behavior
 	}
-
+	logger.Info(ctx, "response", resp)
 	http.Redirect(w, r, "/", http.StatusFound)
 }
 
@@ -230,6 +236,7 @@ func (a *App) handleAuth(w http.ResponseWriter, r *http.Request) {
 		_ = util.SendError(ctx, w, err)
 		return
 	}
+	logger.Info(ctx, "response", fmt.Sprintf("%+v", resp))
 
 	if !util.StatusSuccess(resp.StatusCode) {
 		logger.Err(ctx, "error authentication from server", "response", *resp)
