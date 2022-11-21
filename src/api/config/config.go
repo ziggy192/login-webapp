@@ -6,6 +6,7 @@ type Config struct {
 	AuthSecret             string
 	Port                   string
 	MySQL                  *MySQLConfig
+	Redis                  *RedisConfig
 	JWTExpiresAfterMinutes int
 }
 
@@ -14,6 +15,7 @@ func New() *Config {
 		AuthSecret:             util.GetEnvString("AUTH_SECRET", "test_secret"),
 		Port:                   util.GetEnvString("PORT", "8080"),
 		MySQL:                  NewMySQLConfig(),
+		Redis:                  NewRedisConfig(),
 		JWTExpiresAfterMinutes: util.GetEnvInt("JWT_EXPIRES_AFTER_MINUTES", 300),
 	}
 }
@@ -38,5 +40,24 @@ func NewMySQLConfig() *MySQLConfig {
 		ConnectionLifetimeSeconds: util.GetEnvInt("DB_CONNECTION_LIFETIME_SECONDS", 300),
 		MaxIdleConnections:        util.GetEnvInt("DB_MAX_IDLE_CONNECTIONS", 10),
 		MaxOpenConnections:        util.GetEnvInt("DB_MAX_OPEN_CONNECTIONS", 20),
+	}
+}
+
+// RedisConfig contains configuration to connect to redis
+type RedisConfig struct {
+	Addr      string
+	Password  string
+	DB        int
+	PoolSize  int
+	EnableTLS bool
+}
+
+func NewRedisConfig() *RedisConfig {
+	return &RedisConfig{
+		Addr:      util.GetEnvString("REDIS_ADDRESS", "localhost:6379"),
+		Password:  util.GetEnvString("REDIS_PASSWORD", "password"),
+		DB:        util.GetEnvInt("REDIS_DB", 0),
+		PoolSize:  util.GetEnvInt("REDIS_POOL_SIZE", 32),
+		EnableTLS: util.GetEnvBool("REDIS_ENABLE_TLS", false),
 	}
 }

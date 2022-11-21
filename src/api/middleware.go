@@ -8,6 +8,8 @@ import (
 	"strings"
 )
 
+const AuthorizationHeader = "Authorization"
+
 type AuthMiddleware struct {
 	Authenticator *auth.Authenticator
 }
@@ -19,7 +21,8 @@ func NewAuthMiddleware(a *auth.Authenticator) *AuthMiddleware {
 func (a *AuthMiddleware) Middleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
-		bearerToken := r.Header.Get("Authorization")
+		logger.Info(ctx, "authentication middleware")
+		bearerToken := r.Header.Get(AuthorizationHeader)
 		if len(bearerToken) == 0 {
 			_ = util.SendJSON(ctx, w, http.StatusUnauthorized, "no token found", nil)
 			return

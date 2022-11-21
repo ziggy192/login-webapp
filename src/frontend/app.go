@@ -13,7 +13,8 @@ import (
 
 const (
 	loginGooglePath = "/login_google"
-	profilePath     = "/profile"
+	pathLogout      = "/logout"
+	pathProfile     = "/profile"
 
 	headerAuthorization  = "Authorization"
 	cookieKeyAccessToken = "access_token"
@@ -49,6 +50,7 @@ func (a *App) setupRoutes() {
 	r.HandleFunc("/logout", a.handleLogout).Methods(http.MethodGet)
 	r.HandleFunc("/auth", a.handleAuth).Methods(http.MethodPost)
 
+	r.Use(util.RequestIDMiddleware)
 	r.Use(util.LoggingMiddleware)
 	http.Handle("/", r)
 }

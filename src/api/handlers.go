@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"google.golang.org/api/idtoken"
 	"net/http"
+	"strings"
 )
 
 func (a *App) handleLogin(w http.ResponseWriter, r *http.Request) {
@@ -163,4 +164,15 @@ func (a *App) handleSaveProfile(w http.ResponseWriter, r *http.Request) {
 		Email:    username,
 	}
 	_ = util.SendJSON(r.Context(), w, http.StatusOK, "save profile successfully", p)
+}
+
+func (a *App) handleLogout(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	bearerToken := r.Header.Get(AuthorizationHeader)
+	tokenString := strings.TrimPrefix(bearerToken, "Bearer ")
+	err := a.Authenticator.Logout(ctx, tokenString)
+	if err != nil {
+		_ = util.SendError(ctx, w, err)
+	}
+	_ = util.SendJSON(ctx, w, http.StatusOK, "logged out successfully", nil)
 }

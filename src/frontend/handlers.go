@@ -9,6 +9,8 @@ import (
 	"strings"
 )
 
+const HeaderContentType = "Content-Type"
+
 func (a *App) handleLogin(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	if r.Method == http.MethodGet {
@@ -92,15 +94,20 @@ func (a *App) handleProfileView(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/", http.StatusFound)
 		return
 	}
+	accessToken := cookie.Value
 
-	// todo serparate package -> service
-	request, err := http.NewRequest("GET", a.Config.APIRoot+profilePath, nil)
+	// todo separate package -> service
+	request, err := http.NewRequest(http.MethodGet, a.Config.APIRoot+pathProfile, nil)
 	if err != nil {
 		logger.Err(ctx, err)
 		_ = util.SendError(ctx, w, err)
 		return
 	}
-	request.Header.Set(headerAuthorization, "Bearer "+cookie.Value)
+	requestID := logger.GetRequestID(ctx)
+	if len(requestID) > 0 {
+		request.Header.Set(util.HeaderXRequestID, requestID)
+	}
+	request.Header.Set(headerAuthorization, "Bearer "+accessToken)
 
 	resp, err := http.DefaultClient.Do(request)
 	if err != nil {
@@ -182,6 +189,7 @@ func (a *App) handleProfileEdit(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *App) handleLogout(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	// todo call api to logout
 	cookie, err := r.Cookie(cookieKeyAccessToken)
 	if err != nil {
@@ -191,6 +199,25 @@ func (a *App) handleLogout(w http.ResponseWriter, r *http.Request) {
 	cookie.MaxAge = -1
 	cookie.Value = ""
 	http.SetCookie(w, cookie)
+
+	accessToken := cookie.Value
+	request, err := http.NewRequest(http.MethodPost, a.Config.APIRoot+pathLogout, nil)
+	requestID := logger.GetRequestID(ctx)
+	if len(requestID) > 0 {
+		request.Header.Set(util.HeaderXRequestID, requestID)
+	}
+
+	if err != nil {
+		logger.Err(ctx, err)
+		_ = util.SendError(ctx, w, err)
+		return
+	}
+	request.Header.Set(headerAuthorization, "Bearer "+accessToken)
+	_, err = http.DefaultClient.Do(request) // ignore response because logout error
+	if err != nil {
+		logger.Err(ctx, err) // error should not interrupt logout behavior
+	}
+
 	http.Redirect(w, r, "/", http.StatusFound)
 }
 
@@ -202,13 +229,17 @@ func (a *App) handleAuth(w http.ResponseWriter, r *http.Request) {
 		_ = util.SendError(ctx, w, err)
 	}
 
-	request, err := http.NewRequest("POST", a.Config.APIRoot+loginGooglePath, strings.NewReader(r.PostForm.Encode()))
+	request, err := http.NewRequest(http.MethodPost, a.Config.APIRoot+loginGooglePath, strings.NewReader(r.PostForm.Encode()))
 	if err != nil {
 		logger.Err(ctx, err)
 		_ = util.SendError(ctx, w, err)
 		return
 	}
-	request.Header.Add("Content-Type", "application/x-www-form-urlencoded")
+	requestID := logger.GetRequestID(ctx)
+	if len(requestID) > 0 {
+		request.Header.Set(util.HeaderXRequestID, requestID)
+	}
+	request.Header.Add(HeaderContentType, "application/x-www-form-urlencoded")
 
 	csrfTokenCookie, err := r.Cookie("g_csrf_token")
 	if err != nil {
