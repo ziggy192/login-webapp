@@ -4,43 +4,73 @@ import (
 	"bitbucket.org/ziggy192/ng_lu/src/frontend/model"
 	"bitbucket.org/ziggy192/ng_lu/src/logger"
 	"bitbucket.org/ziggy192/ng_lu/src/util"
+	"bytes"
 	"encoding/json"
 	"net/http"
 	"strings"
 )
 
-const HeaderContentType = "Content-Type"
+func (a *App) handleGetLogin(w http.ResponseWriter, _ *http.Request) {
+	a.renderLoginPage(w, nil)
+	return
+}
 
-func (a *App) handleLogin(w http.ResponseWriter, r *http.Request) {
+func (a *App) handlePostLogin(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	if r.Method == http.MethodGet {
-		p := struct {
-			LoginURI       string
-			GoogleClientID string
-		}{
-			LoginURI:       a.Config.LoginURI,
-			GoogleClientID: a.Config.GoogleClientID,
-		}
-		_ = a.Tmpl.ExecuteTemplate(w, "login.html", p)
-		return
-	}
-
 	err := r.ParseForm()
 	if err != nil {
 		logger.Err(ctx, err)
 		_ = util.SendError(ctx, w, err)
 		return
 	}
-	var acc model.Account
-	err = a.SchemaDecoder.Decode(&acc, r.PostForm)
+
+	acc := &model.LoginRequest{
+		Username: r.PostFormValue("username"),
+		Password: r.PostFormValue("password"),
+	}
+	body, err := json.Marshal(acc)
+	if err != nil {
+		logger.Err(ctx, err)
+		_ = util.SendError(ctx, w, err)
+		return
+	}
+	request, err := http.NewRequest(http.MethodPost, a.Config.APIRoot+pathLogin, bytes.NewBuffer(body))
+	request.Header.Set(HeaderContentType, "application/json")
+	if err != nil {
+		logger.Err(ctx, err)
+		_ = util.SendError(ctx, w, err)
+		return
+	}
+	requestID := logger.GetRequestID(ctx)
+	if len(requestID) > 0 {
+		request.Header.Set(util.HeaderXRequestID, requestID)
+	}
+	resp, err := http.DefaultClient.Do(request)
 	if err != nil {
 		logger.Err(ctx, err)
 		_ = util.SendError(ctx, w, err)
 		return
 	}
 
-	// todo do something with acc
-	logger.Info(ctx, acc)
+	var tokenResp model.TokenResponse
+	response, err := ParseResponse(ctx, resp, &tokenResp)
+	if err != nil {
+		logger.Err(ctx, err)
+		a.renderLoginPage(w, &model.ErrorPage{ErrorMessage: err.Error()})
+		return
+	}
+
+	if response.StatusCode == http.StatusUnauthorized || response.StatusCode == http.StatusForbidden {
+		logger.Info(ctx, "unauthorized", "status", response.StatusCode, "message", response.Message)
+		a.renderLoginPage(w, &model.ErrorPage{ErrorMessage: response.Message})
+		return
+	}
+
+	if !util.StatusSuccess(response.StatusCode) {
+		logger.Err(ctx, "error from server", "status code", response.StatusCode, "message", response.Message, "body", tokenResp)
+		a.renderLoginPage(w, &model.ErrorPage{ErrorMessage: response.Message})
+		return
+	}
 
 	// todo try login with account
 
@@ -49,10 +79,18 @@ func (a *App) handleLogin(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/profile/view", http.StatusFound)
 }
 
+func (a *App) renderLoginPage(w http.ResponseWriter, err *model.ErrorPage) {
+	_ = a.Tmpl.Execute(w, templateLogin, model.LoginPage{
+		ErrorPage:      err,
+		LoginURI:       a.Config.LoginURI,
+		GoogleClientID: a.Config.GoogleClientID,
+	})
+}
+
 func (a *App) handleSignup(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	if r.Method == http.MethodGet {
-		_ = a.Tmpl.ExecuteTemplate(w, "signup.html", nil)
+		_ = a.Tmpl.Execute(w, templateSignup, nil)
 		return
 	}
 
@@ -62,7 +100,7 @@ func (a *App) handleSignup(w http.ResponseWriter, r *http.Request) {
 		_ = util.SendError(ctx, w, err)
 		return
 	}
-	var acc model.Account
+	var acc model.LoginRequest
 	err = a.SchemaDecoder.Decode(&acc, r.PostForm)
 	if err != nil {
 		logger.Err(ctx, err)
@@ -109,10 +147,17 @@ func (a *App) handleProfileView(w http.ResponseWriter, r *http.Request) {
 	}
 	request.Header.Set(headerAuthorization, "Bearer "+accessToken)
 
-	resp, err := http.DefaultClient.Do(request)
+	response, err := http.DefaultClient.Do(request)
 	if err != nil {
 		logger.Err(ctx, err)
 		_ = util.SendError(ctx, w, err)
+		return
+	}
+	var p model.Profile
+	resp, err := ParseResponse(ctx, response, &p)
+	if err != nil {
+		logger.Err(ctx, err)
+		_ = util.SendError(ctx, w, err) // todo render page
 		return
 	}
 
@@ -123,27 +168,12 @@ func (a *App) handleProfileView(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if !util.StatusSuccess(resp.StatusCode) {
-		logger.Err(ctx, "error from server", "status code", resp.StatusCode, "body", util.ReadBody(resp.Body))
+		logger.Err(ctx, "error from server", "response", *resp)
 		_ = util.SendJSON(ctx, w, resp.StatusCode, "error from server", nil)
 		return
 	}
 
-	var baseResponse model.BaseResponse
-	err = json.NewDecoder(resp.Body).Decode(&baseResponse)
-	if err != nil {
-		logger.Err(ctx, err)
-		_ = util.SendError(ctx, w, err)
-		return
-	}
-
-	var p model.Profile
-	err = baseResponse.UnmarshalData(&p)
-	if err != nil {
-		logger.Err(ctx, err)
-		_ = util.SendError(ctx, w, err)
-	}
-
-	_ = a.Tmpl.ExecuteTemplate(w, "profile_view.html", p)
+	_ = a.Tmpl.Execute(w, templateProfileView, p)
 }
 
 func (a *App) handleProfileEdit(w http.ResponseWriter, r *http.Request) {
@@ -158,7 +188,7 @@ func (a *App) handleProfileEdit(w http.ResponseWriter, r *http.Request) {
 			Phone:    "somephne",
 			Email:    "email",
 		}
-		_ = a.Tmpl.ExecuteTemplate(w, "profile_edit.html", p)
+		_ = a.Tmpl.Execute(w, templateProfileEdit, p)
 		return
 	}
 
@@ -185,7 +215,7 @@ func (a *App) handleProfileEdit(w http.ResponseWriter, r *http.Request) {
 
 	http.Redirect(w, r, "/profile/view", http.StatusFound)
 
-	_ = a.Tmpl.ExecuteTemplate(w, "profile_edit.html", p)
+	_ = a.Tmpl.Execute(w, templateProfileEdit, p)
 }
 
 func (a *App) handleLogout(w http.ResponseWriter, r *http.Request) {
@@ -229,7 +259,7 @@ func (a *App) handleAuth(w http.ResponseWriter, r *http.Request) {
 		_ = util.SendError(ctx, w, err)
 	}
 
-	request, err := http.NewRequest(http.MethodPost, a.Config.APIRoot+loginGooglePath, strings.NewReader(r.PostForm.Encode()))
+	request, err := http.NewRequest(http.MethodPost, a.Config.APIRoot+pathLoginGoogle, strings.NewReader(r.PostForm.Encode()))
 	if err != nil {
 		logger.Err(ctx, err)
 		_ = util.SendError(ctx, w, err)
@@ -252,7 +282,14 @@ func (a *App) handleAuth(w http.ResponseWriter, r *http.Request) {
 		Value:  csrfTokenCookie.Value,
 		MaxAge: csrfTokenCookie.MaxAge,
 	})
-	resp, err := http.DefaultClient.Do(request)
+	response, err := http.DefaultClient.Do(request)
+	if err != nil {
+		logger.Err(ctx, err)
+		_ = util.SendError(ctx, w, err)
+		return
+	}
+	var tokenResp = &model.TokenResponse{}
+	resp, err := ParseResponse(ctx, response, &tokenResp)
 	if err != nil {
 		logger.Err(ctx, err)
 		_ = util.SendError(ctx, w, err)
@@ -260,22 +297,8 @@ func (a *App) handleAuth(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if !util.StatusSuccess(resp.StatusCode) {
-		logger.Err(ctx, "error authentication from server", "status code", resp.StatusCode, "body", util.ReadBody(resp.Body))
+		logger.Err(ctx, "error authentication from server", "response", *resp)
 		_ = util.SendJSON(ctx, w, resp.StatusCode, "error authentication from server", nil)
-		return
-	}
-
-	var baseResponse model.BaseResponse
-	if err = json.NewDecoder(resp.Body).Decode(&baseResponse); err != nil {
-		logger.Err(ctx, err)
-		_ = util.SendError(ctx, w, err)
-		return
-	}
-
-	var tokenResp = &model.TokenResponse{}
-	if err = baseResponse.UnmarshalData(&tokenResp); err != nil {
-		logger.Err(ctx, err)
-		_ = util.SendError(ctx, w, err)
 		return
 	}
 

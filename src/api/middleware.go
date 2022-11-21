@@ -4,6 +4,7 @@ import (
 	"bitbucket.org/ziggy192/ng_lu/src/api/auth"
 	"bitbucket.org/ziggy192/ng_lu/src/logger"
 	"bitbucket.org/ziggy192/ng_lu/src/util"
+	"fmt"
 	"net/http"
 	"strings"
 )
@@ -37,7 +38,7 @@ func (a *AuthMiddleware) Middleware(next http.Handler) http.Handler {
 
 		// todo check if issue at after last_logout
 		username := claims.Subject
-		logger.Info(ctx, "authenticated user", username, "claims", *claims)
+		logger.Info(ctx, "authenticated user", username, fmt.Sprintf("claims %+v", *claims))
 		r = r.WithContext(auth.SaveClaims(r.Context(), claims))
 		next.ServeHTTP(w, r)
 	})

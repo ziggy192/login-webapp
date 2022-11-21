@@ -1,31 +1,35 @@
-<script src="https://accounts.google.com/gsi/client" async defer></script>
+<html>
+    <body>
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <h1>Login</h1>
+    <form method="POST">
+        <label>
+            Username <input type="email" name="username" required>
+        </label><br/>
+        <label>
+            Password <input type="password" name="password" required>
+        </label><br/>
+        <input type="submit">
+    </form>
+    {{if .ErrorPage }}
+    <div style="color: red">{{.ErrorMessage}}</div>
+    {{end}}
 
-<h1>Login</h1>
-<form method="POST">
-    <label>
-        Username <input type="text" name="username">
-    </label><br/>
-    <label>
-        Password <input type="password" name="password">
-    </label><br/>
-    <input type="submit">
-</form>
+    <div id="g_id_onload"
+         data-client_id="{{.GoogleClientID}}"
+         data-login_uri="{{.LoginURI}}"
+         data-auto_prompt="false">
+    </div>
 
-<!--todo login with google-->
-<!--todo eit the login_uri-->
-<div id="g_id_onload"
-     data-client_id="{{.GoogleClientID}}"
-     data-login_uri="{{.LoginURI}}"
-     data-auto_prompt="false">
-</div>
-
-<div class="g_id_signin"
-     data-type="standard"
-     data-size="large"
-     data-theme="outline"
-     data-text="sign_in_with"
-     data-shape="rectangular"
-     data-logo_alignment="left">
-</div>
-<br/>
-<a href="/signup">Dont have an account ? Sign-up here</a>
+    <div class="g_id_signin"
+         data-type="standard"
+         data-size="large"
+         data-theme="outline"
+         data-text="sign_in_with"
+         data-shape="rectangular"
+         data-logo_alignment="left">
+    </div>
+    <br/>
+    <a href="/signup">Dont have an account ? Sign-up here</a>
+    </body>
+</html>

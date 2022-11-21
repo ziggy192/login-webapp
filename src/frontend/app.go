@@ -7,12 +7,12 @@ import (
 	"context"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/schema"
-	"html/template"
 	"net/http"
 )
 
 const (
-	loginGooglePath = "/login_google"
+	pathLogin       = "/login"
+	pathLoginGoogle = "/login_google"
 	pathLogout      = "/logout"
 	pathProfile     = "/profile"
 
@@ -23,19 +23,14 @@ const (
 type App struct {
 	Config        *config.Config
 	SchemaDecoder *schema.Decoder
-	Tmpl          *template.Template
+	Tmpl          *Template
 }
 
 func NewApp() *App {
 	a := &App{
 		Config:        config.New(),
 		SchemaDecoder: schema.NewDecoder(),
-		Tmpl: template.Must(template.ParseFiles(
-			"templates/login.html",
-			"templates/signup.html",
-			"templates/profile_edit.html",
-			"templates/profile_view.html",
-		)),
+		Tmpl:          NewTemplate(),
 	}
 	a.setupRoutes()
 	return a
@@ -43,7 +38,9 @@ func NewApp() *App {
 
 func (a *App) setupRoutes() {
 	r := mux.NewRouter()
-	r.HandleFunc("/", a.handleLogin).Methods(http.MethodGet, http.MethodPost)
+	r.HandleFunc("/", a.handlePostLogin).Methods(http.MethodPost)
+	r.HandleFunc("/", a.handleGetLogin).Methods(http.MethodGet)
+
 	r.HandleFunc("/signup", a.handleSignup).Methods(http.MethodGet, http.MethodPost)
 	r.HandleFunc("/profile/view", a.handleProfileView).Methods(http.MethodGet)
 	r.HandleFunc("/profile/edit", a.handleProfileEdit).Methods(http.MethodPost, http.MethodGet)

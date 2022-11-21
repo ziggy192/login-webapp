@@ -32,11 +32,18 @@ func (a *App) handleLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if acc.IsCorrectPassword(rqBody.Password) {
+	if !acc.IsCorrectPassword(rqBody.Password) {
 		_ = util.SendJSON(ctx, w, http.StatusUnauthorized, "password is incorrect", nil)
 		return
 	}
 
+	signed, err := a.Authenticator.SignUserJWT(ctx, acc.Username)
+	if err != nil {
+		_ = util.SendError(ctx, w, err)
+		return
+	}
+	resp := &model.TokenResponse{AccessToken: signed}
+	_ = util.SendJSON(ctx, w, 200, "login successfully", resp)
 }
 
 func (a *App) handleSignup(w http.ResponseWriter, r *http.Request) {

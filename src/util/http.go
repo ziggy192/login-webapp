@@ -9,7 +9,6 @@ import (
 	"time"
 )
 
-// todo should use error page instead for frontend
 // SendJSON encodes data as JSON object and returns it to client
 func SendJSON(ctx context.Context, w http.ResponseWriter, statusCode int, message string, data interface{}) error {
 	w.Header().Set("Content-Type", "application/json")

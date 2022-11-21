@@ -2,16 +2,31 @@
 
 <h1>Sign up</h1>
 <form method="POST">
-    <label>Username:</label><br/>
-    <input type="text" name="username"><br/>
-    <label>Password:</label><br/>
-    <input type="password" name="password"><br/>
+    <label>
+        Username <input type="email" name="username">
+    </label><br/>
+    <label>
+        Password <input type="password" name="password">
+    </label><br/>
     <input type="submit">
 </form>
+{{if .ErrorPage }}
+<div style="color: red">{{.ErrorMessage}}</div>
+{{end}}
 
-<!--todo signup with google-->
-<a href="/">
-    <button>Signup with Google</button>
-</a>
+<div id="g_id_onload"
+     data-client_id="{{.GoogleClientID}}"
+     data-login_uri="{{.LoginURI}}"
+     data-auto_prompt="false">
+</div>
+
+<div class="g_id_signin"
+     data-type="standard"
+     data-size="large"
+     data-theme="outline"
+     data-text="sign_in_with"
+     data-shape="rectangular"
+     data-logo_alignment="left">
+</div>
 <br/>
 <a href="/">Existing User Login</a>
