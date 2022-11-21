@@ -45,6 +45,18 @@ INSERT INTO accounts (
   	?
 );`
 
+const sqlUpdatePasswordToAccount = `
+UPDATE accounts 
+SET hashed_password = ? 
+WHERE username = ?;
+`
+
+const sqlUpdateGoogleIDToAccount = `
+UPDATE accounts 
+SET google_id = ? 
+WHERE username = ?;
+`
+
 // FindAccountByUserName finds account by username
 func (a *AccountStore) FindAccountByUserName(ctx context.Context, userName string) (*model.Account, error) {
 	var account = &model.Account{}
@@ -86,4 +98,22 @@ func (a *AccountStore) CreateAccountGoogle(ctx context.Context, username, google
 	return nil
 }
 
-// todo update logout
+func (a *AccountStore) UpdatePasswordToAccount(ctx context.Context, username, hashedPassword string) error {
+	logger.Info(ctx, "update password to account", username)
+	_, err := a.DB.ExecContext(ctx, sqlUpdatePasswordToAccount, hashedPassword, username)
+	if err != nil {
+		logger.Err(ctx, err)
+		return err
+	}
+	return nil
+}
+
+func (a *AccountStore) UpdateGoogleIDToAccount(ctx context.Context, username, googleID string) error {
+	logger.Info(ctx, "update google id to account", username, googleID)
+	_, err := a.DB.ExecContext(ctx, sqlUpdateGoogleIDToAccount, googleID, username)
+	if err != nil {
+		logger.Err(ctx, err)
+		return err
+	}
+	return nil
+}

@@ -49,6 +49,7 @@ func (a *App) setupRoutes() {
 	authMiddleware := NewAuthMiddleware(a.Authenticator)
 
 	r := mux.NewRouter()
+	r.HandleFunc("/ping", a.handlePing).Methods(http.MethodGet)
 	r.HandleFunc("/login", a.handleLogin).Methods(http.MethodPost)
 	r.HandleFunc("/login_google", a.handleLoginGoogle).Methods(http.MethodPost)
 	r.HandleFunc("/signup", a.handleSignup).Methods(http.MethodPost)
@@ -89,4 +90,11 @@ func (a *App) Stop(ctx context.Context) {
 			logger.Err(ctx, err)
 		}
 	}
+}
+
+func (a *App) handlePing(writer http.ResponseWriter, request *http.Request) {
+	_ = util.SendJSON(request.Context(), writer, http.StatusOK, "pong", map[string]string{
+		"host": request.Host,
+		"port": a.Config.Port,
+	})
 }

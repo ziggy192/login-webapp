@@ -6,6 +6,7 @@ import (
 	"bitbucket.org/ziggy192/ng_lu/src/logger"
 	"bitbucket.org/ziggy192/ng_lu/src/util"
 	"encoding/json"
+	"fmt"
 	"google.golang.org/api/idtoken"
 	"net/http"
 	"strings"
@@ -60,6 +61,20 @@ func (a *App) handleSignup(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	acc, err := a.DBStores.Account.FindAccountByUserName(ctx, rqBody.Username)
+	if err != nil {
+		logger.Err(ctx, err)
+		_ = util.SendError(ctx, w, err)
+		return
+	}
+
+	if acc != nil {
+		msg := fmt.Sprintf("account with username %s already exists", rqBody.Username)
+		logger.Info(ctx, msg)
+		_ = util.SendJSON(ctx, w, http.StatusBadRequest, msg, nil)
+		return
+	}
+
 	account, err := model.NewAccount(ctx, rqBody.Username, rqBody.Password)
 	if err != nil {
 		_ = util.SendError(r.Context(), w, err)
@@ -72,7 +87,6 @@ func (a *App) handleSignup(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// todo return access token also
 	jwt, err := a.Authenticator.SignUserJWT(ctx, account.Username)
 	if err != nil {
 		_ = util.SendError(r.Context(), w, err)
@@ -115,33 +129,32 @@ func (a *App) handleLoginGoogle(w http.ResponseWriter, r *http.Request) {
 
 	logger.Info(ctx, "token verified", tokenPayload.Claims)
 
-	// todo lookup database to signup or login with google account
-	email := tokenPayload.Claims["email"].(string)
-
-	acc, err := a.DBStores.Account.FindAccountByUserName(ctx, email)
+	username := tokenPayload.Claims["email"].(string)
+	acc, err := a.DBStores.Account.FindAccountByUserName(ctx, username)
 	if err != nil {
 		logger.Err(ctx, err)
 		_ = util.SendError(ctx, w, err)
 		return
 	}
 
+	googleID := tokenPayload.Subject
 	if acc == nil {
-		googleID := tokenPayload.Subject
-		if err := a.DBStores.Account.CreateAccountGoogle(ctx, email, googleID); err != nil {
+		logger.Info(ctx, "account", username, "not exists yet, creating new account with googleID")
+		if err := a.DBStores.Account.CreateAccountGoogle(ctx, username, googleID); err != nil {
 			logger.Err(ctx, err)
 			_ = util.SendError(ctx, w, err)
 			return
 		}
-
-		acc, err = a.DBStores.Account.FindAccountByUserName(ctx, email)
-		if err != nil {
+	} else if len(acc.GoogleID) == 0 {
+		logger.Info(ctx, "account", username, "exists, updating googleID to account")
+		if err := a.DBStores.Account.UpdateGoogleIDToAccount(ctx, username, googleID); err != nil {
 			logger.Err(ctx, err)
 			_ = util.SendError(ctx, w, err)
 			return
 		}
 	}
 
-	signed, err := a.Authenticator.SignUserJWT(ctx, acc.Username)
+	signed, err := a.Authenticator.SignUserJWT(ctx, username)
 	if err != nil {
 		_ = util.SendError(ctx, w, err)
 		return

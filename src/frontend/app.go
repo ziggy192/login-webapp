@@ -13,6 +13,7 @@ import (
 const (
 	pathLogin       = "/login"
 	pathLoginGoogle = "/login_google"
+	pathSignup      = "/signup"
 	pathLogout      = "/logout"
 	pathProfile     = "/profile"
 
@@ -41,7 +42,8 @@ func (a *App) setupRoutes() {
 	r.HandleFunc("/", a.handlePostLogin).Methods(http.MethodPost)
 	r.HandleFunc("/", a.handleGetLogin).Methods(http.MethodGet)
 
-	r.HandleFunc("/signup", a.handleSignup).Methods(http.MethodGet, http.MethodPost)
+	r.HandleFunc("/signup", a.handleGetSignup).Methods(http.MethodGet)
+	r.HandleFunc("/signup", a.handlePostSignup).Methods(http.MethodPost)
 	r.HandleFunc("/profile/view", a.handleProfileView).Methods(http.MethodGet)
 	r.HandleFunc("/profile/edit", a.handleProfileEdit).Methods(http.MethodPost, http.MethodGet)
 	r.HandleFunc("/logout", a.handleLogout).Methods(http.MethodGet)

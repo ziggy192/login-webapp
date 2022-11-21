@@ -6,6 +6,8 @@ import (
 	"bitbucket.org/ziggy192/ng_lu/src/util"
 	"bytes"
 	"encoding/json"
+	"fmt"
+	"io"
 	"net/http"
 	"strings"
 )
@@ -24,7 +26,7 @@ func (a *App) handlePostLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	acc := &model.LoginRequest{
+	acc := &model.AccountRequest{
 		Username: r.PostFormValue("username"),
 		Password: r.PostFormValue("password"),
 	}
@@ -52,7 +54,7 @@ func (a *App) handlePostLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var tokenResp model.TokenResponse
+	var tokenResp = &model.TokenResponse{}
 	response, err := ParseResponse(ctx, resp, &tokenResp)
 	if err != nil {
 		logger.Err(ctx, err)
@@ -72,10 +74,7 @@ func (a *App) handlePostLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// todo try login with account
-
-	// returns fails if not success
-
+	a.setAccessTokenCookie(w, tokenResp)
 	http.Redirect(w, r, "/profile/view", http.StatusFound)
 }
 
@@ -87,34 +86,69 @@ func (a *App) renderLoginPage(w http.ResponseWriter, err *model.ErrorPage) {
 	})
 }
 
-func (a *App) handleSignup(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-	if r.Method == http.MethodGet {
-		_ = a.Tmpl.Execute(w, templateSignup, nil)
-		return
-	}
+func (a *App) renderSignupPage(wr io.Writer, err *model.ErrorPage) {
+	_ = a.Tmpl.Execute(wr, templateSignup, model.SignupPage{
+		ErrorPage:      err,
+		LoginURI:       a.Config.LoginURI,
+		GoogleClientID: a.Config.GoogleClientID,
+	})
+}
+func (a *App) handleGetSignup(w http.ResponseWriter, _ *http.Request) {
+	a.renderSignupPage(w, nil)
+}
 
+func (a *App) handlePostSignup(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	err := r.ParseForm()
 	if err != nil {
 		logger.Err(ctx, err)
 		_ = util.SendError(ctx, w, err)
 		return
 	}
-	var acc model.LoginRequest
-	err = a.SchemaDecoder.Decode(&acc, r.PostForm)
+
+	acc := &model.AccountRequest{
+		Username: r.PostFormValue("username"),
+		Password: r.PostFormValue("password"),
+	}
+	body, err := json.Marshal(acc)
+	if err != nil {
+		logger.Err(ctx, err)
+		a.renderSignupPage(w, &model.ErrorPage{ErrorMessage: err.Error()})
+		return
+	}
+	request, err := http.NewRequest(http.MethodPost, a.Config.APIRoot+pathSignup, bytes.NewBuffer(body))
+	request.Header.Set(HeaderContentType, "application/json")
+	if err != nil {
+		logger.Err(ctx, err)
+		_ = util.SendError(ctx, w, err)
+		return
+	}
+	requestID := logger.GetRequestID(ctx)
+	if len(requestID) > 0 {
+		request.Header.Set(util.HeaderXRequestID, requestID)
+	}
+	resp, err := http.DefaultClient.Do(request)
 	if err != nil {
 		logger.Err(ctx, err)
 		_ = util.SendError(ctx, w, err)
 		return
 	}
 
-	// todo do something with acc
-	logger.Info(ctx, acc)
+	var tokenResp = &model.TokenResponse{}
+	response, err := ParseResponse(ctx, resp, &tokenResp)
+	if err != nil {
+		logger.Err(ctx, err)
+		a.renderSignupPage(w, &model.ErrorPage{ErrorMessage: err.Error()})
+		return
+	}
 
-	// todo try signup with account
+	if !util.StatusSuccess(response.StatusCode) {
+		logger.Err(ctx, "error from server", "response", fmt.Sprintf("%+v", response))
+		a.renderSignupPage(w, &model.ErrorPage{ErrorMessage: response.Message})
+		return
+	}
 
-	// returns fails if not success
-
+	a.setAccessTokenCookie(w, tokenResp)
 	http.Redirect(w, r, "/profile/edit", http.StatusFound)
 }
 
@@ -302,12 +336,15 @@ func (a *App) handleAuth(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	a.setAccessTokenCookie(w, tokenResp)
+	http.Redirect(w, r, "/profile/view", http.StatusFound)
+}
+
+func (a *App) setAccessTokenCookie(w http.ResponseWriter, tokenResp *model.TokenResponse) {
 	http.SetCookie(w, &http.Cookie{
 		Name:  cookieKeyAccessToken,
 		Value: tokenResp.AccessToken,
 		//Secure:   true,
 		HttpOnly: true,
 	})
-
-	http.Redirect(w, r, "/profile/view", http.StatusFound)
 }
