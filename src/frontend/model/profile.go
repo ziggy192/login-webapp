@@ -1,6 +1,8 @@
 package model
 
-import "time"
+import (
+	"time"
+)
 
 type Profile struct {
 	FullName  string    `json:"full_name" schema:"full_name"`

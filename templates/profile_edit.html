@@ -2,16 +2,24 @@
 <form method="POST">
     <label>
         Full Name <input type="text" name="full_name">
-    </label><br />
+    </label><br/>
     <label>
-        Phone <input type="text" name="phone">
-    </label><br />
+        Phone <input type="text"
+                     pattern="^[+]*[(]{0,1}[0-9]{1,4}[)]{0,1}[-\s\./0-9]*$"
+                     oninvalid="this.setCustomValidity('invalid phone number')"
+                     oninput="this.setCustomValidity('')"
+                     name="phone">
+    </label><br/>
     <label>
         Email <input type="email" name="email">
-    </label><br />
+    </label><br/>
     <input type="submit" value="Save &amp; Continue">
 </form>
 <br>
 <a href="/profile/view">
     <button>Cancel</button>
 </a>
+<br/>
+{{if .ErrorPage }}
+<div style="color: red">{{.ErrorMessage}}</div>
+{{end}}

@@ -2,19 +2,20 @@ package util
 
 import (
 	"bitbucket.org/ziggy192/ng_lu/src/logger"
+	"bytes"
 	"context"
+	"io"
 	"net/http"
-	"time"
 )
 
 const HeaderXRequestID = "X-REQUEST-ID"
 
 func LoggingMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		startTime := time.Now()
+		body, _ := io.ReadAll(r.Body)
+		logger.Info(r.Context(), "request", r.RemoteAddr, r.Method, r.URL, string(body))
+		r.Body = io.NopCloser(bytes.NewBuffer(body))
 		next.ServeHTTP(w, r)
-		runTime := time.Since(startTime)
-		logger.Info(r.Context(), "request", r.RemoteAddr, r.Method, r.URL, runTime, ReadBody(r.Body))
 	})
 }
 

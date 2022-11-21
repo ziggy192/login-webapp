@@ -6,7 +6,6 @@ import (
 	"bitbucket.org/ziggy192/ng_lu/src/util"
 	"context"
 	"github.com/gorilla/mux"
-	"github.com/gorilla/schema"
 	"net/http"
 )
 
@@ -22,16 +21,14 @@ const (
 )
 
 type App struct {
-	Config        *config.Config
-	SchemaDecoder *schema.Decoder
-	Tmpl          *Template
+	Config *config.Config
+	Tmpl   *Template
 }
 
 func NewApp() *App {
 	a := &App{
-		Config:        config.New(),
-		SchemaDecoder: schema.NewDecoder(),
-		Tmpl:          NewTemplate(),
+		Config: config.New(),
+		Tmpl:   NewTemplate(),
 	}
 	a.setupRoutes()
 	return a
@@ -39,15 +36,17 @@ func NewApp() *App {
 
 func (a *App) setupRoutes() {
 	r := mux.NewRouter()
+	r.HandleFunc("/ping", a.handlePing).Methods(http.MethodGet)
 	r.HandleFunc("/", a.handlePostLogin).Methods(http.MethodPost)
 	r.HandleFunc("/", a.handleGetLogin).Methods(http.MethodGet)
-
 	r.HandleFunc("/signup", a.handleGetSignup).Methods(http.MethodGet)
 	r.HandleFunc("/signup", a.handlePostSignup).Methods(http.MethodPost)
-	r.HandleFunc("/profile/view", a.handleProfileView).Methods(http.MethodGet)
-	r.HandleFunc("/profile/edit", a.handleProfileEdit).Methods(http.MethodPost, http.MethodGet)
 	r.HandleFunc("/logout", a.handleLogout).Methods(http.MethodGet)
 	r.HandleFunc("/auth", a.handleAuth).Methods(http.MethodPost)
+
+	r.HandleFunc("/profile/view", a.handleProfileView).Methods(http.MethodGet)
+	r.HandleFunc("/profile/edit", a.handleGetProfileEdit).Methods(http.MethodGet)
+	r.HandleFunc("/profile/edit", a.handlePostProfileEdit).Methods(http.MethodPost)
 
 	r.Use(util.RequestIDMiddleware)
 	r.Use(util.LoggingMiddleware)
@@ -61,3 +60,10 @@ func (a *App) Start(ctx context.Context) error {
 
 // Stop stops app
 func (a *App) Stop() {}
+
+func (a *App) handlePing(writer http.ResponseWriter, request *http.Request) {
+	_ = util.SendJSON(request.Context(), writer, http.StatusOK, "pong", map[string]string{
+		"host": request.Host,
+		"port": a.Config.Port,
+	})
+}

@@ -1,7 +1,6 @@
 package api
 
 import (
-	"bitbucket.org/ziggy192/ng_lu/src/api/auth"
 	"bitbucket.org/ziggy192/ng_lu/src/api/model"
 	"bitbucket.org/ziggy192/ng_lu/src/logger"
 	"bitbucket.org/ziggy192/ng_lu/src/util"
@@ -162,28 +161,6 @@ func (a *App) handleLoginGoogle(w http.ResponseWriter, r *http.Request) {
 
 	resp := &model.TokenResponse{AccessToken: signed}
 	_ = util.SendJSON(ctx, w, 200, "login successfully", resp)
-}
-
-func (a *App) handleGetProfile(w http.ResponseWriter, r *http.Request) {
-	username := auth.GetUsername(r.Context())
-	// todo get profile from database by username
-	p := &model.Profile{
-		FullName: "nghia api",
-		Phone:    "something",
-		Email:    username,
-	}
-	_ = util.SendJSON(r.Context(), w, http.StatusOK, "get profile successfully", p)
-}
-
-func (a *App) handleSaveProfile(w http.ResponseWriter, r *http.Request) {
-	username := auth.GetUsername(r.Context())
-	// todo get profile by username
-	p := &model.Profile{
-		FullName: "nghia api",
-		Phone:    "something",
-		Email:    username,
-	}
-	_ = util.SendJSON(r.Context(), w, http.StatusOK, "save profile successfully", p)
 }
 
 func (a *App) handleLogout(w http.ResponseWriter, r *http.Request) {

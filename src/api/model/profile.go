@@ -1,9 +1,11 @@
 package model
 
-import "time"
+import (
+	"time"
+)
 
 type Profile struct {
-	ID        int       `json:"ID"`
+	ID        int64     `json:"ID"`
 	FullName  string    `json:"full_name"`
 	Phone     string    `json:"phone"`
 	Email     string    `json:"email"`

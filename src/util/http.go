@@ -4,7 +4,6 @@ import (
 	"bitbucket.org/ziggy192/ng_lu/src/logger"
 	"context"
 	"encoding/json"
-	"io"
 	"net/http"
 	"time"
 )
@@ -38,11 +37,6 @@ func SendJSON(ctx context.Context, w http.ResponseWriter, statusCode int, messag
 // SendError sends internal error response to client
 func SendError(ctx context.Context, w http.ResponseWriter, err error) error {
 	return SendJSON(ctx, w, http.StatusInternalServerError, err.Error(), nil)
-}
-
-func ReadBody(reader io.Reader) string {
-	body, _ := io.ReadAll(reader)
-	return string(body)
 }
 
 func StatusSuccess(statusCode int) bool {

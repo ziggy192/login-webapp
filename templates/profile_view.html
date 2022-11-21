@@ -9,3 +9,7 @@
 <a href="/logout">
     <button>Logout</button>
 </a>
+<br/>
+{{if .ErrorPage }}
+<div style="color: red">{{.ErrorMessage}}</div>
+{{end}}

@@ -93,6 +93,7 @@ func (a *App) renderSignupPage(wr io.Writer, err *model.ErrorPage) {
 		GoogleClientID: a.Config.GoogleClientID,
 	})
 }
+
 func (a *App) handleGetSignup(w http.ResponseWriter, _ *http.Request) {
 	a.renderSignupPage(w, nil)
 }
@@ -150,106 +151,6 @@ func (a *App) handlePostSignup(w http.ResponseWriter, r *http.Request) {
 
 	a.setAccessTokenCookie(w, tokenResp)
 	http.Redirect(w, r, "/profile/edit", http.StatusFound)
-}
-
-func (a *App) handleProfileView(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-
-	w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
-	w.Header().Set("Pragma", "no-cache")
-	w.Header().Set("Expires", "0")
-	// todo get profile from token
-
-	cookie, err := r.Cookie(cookieKeyAccessToken)
-	if err != nil {
-		logger.Info(ctx, "cannot find \"access_token\" in cookie, redirect to login")
-		http.Redirect(w, r, "/", http.StatusFound)
-		return
-	}
-	accessToken := cookie.Value
-
-	// todo separate package -> service
-	request, err := http.NewRequest(http.MethodGet, a.Config.APIRoot+pathProfile, nil)
-	if err != nil {
-		logger.Err(ctx, err)
-		_ = util.SendError(ctx, w, err)
-		return
-	}
-	requestID := logger.GetRequestID(ctx)
-	if len(requestID) > 0 {
-		request.Header.Set(util.HeaderXRequestID, requestID)
-	}
-	request.Header.Set(headerAuthorization, "Bearer "+accessToken)
-
-	response, err := http.DefaultClient.Do(request)
-	if err != nil {
-		logger.Err(ctx, err)
-		_ = util.SendError(ctx, w, err)
-		return
-	}
-	var p model.Profile
-	resp, err := ParseResponse(ctx, response, &p)
-	if err != nil {
-		logger.Err(ctx, err)
-		_ = util.SendError(ctx, w, err) // todo render page
-		return
-	}
-
-	if resp.StatusCode == http.StatusUnauthorized || resp.StatusCode == http.StatusForbidden {
-		logger.Info(ctx, "unauthorized, redirect to login", "status", resp.StatusCode)
-		http.Redirect(w, r, "/", http.StatusFound)
-		return
-	}
-
-	if !util.StatusSuccess(resp.StatusCode) {
-		logger.Err(ctx, "error from server", "response", *resp)
-		_ = util.SendJSON(ctx, w, resp.StatusCode, "error from server", nil)
-		return
-	}
-
-	_ = a.Tmpl.Execute(w, templateProfileView, p)
-}
-
-func (a *App) handleProfileEdit(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-	w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
-	w.Header().Set("Pragma", "no-cache")
-	w.Header().Set("Expires", "0")
-	if r.Method == http.MethodGet {
-		// todo get profile from token
-		p := model.Profile{
-			FullName: "Something",
-			Phone:    "somephne",
-			Email:    "email",
-		}
-		_ = a.Tmpl.Execute(w, templateProfileEdit, p)
-		return
-	}
-
-	err := r.ParseForm()
-	if err != nil {
-		logger.Err(ctx, err)
-		_ = util.SendError(ctx, w, err)
-		return
-	}
-	var p model.Profile
-	err = a.SchemaDecoder.Decode(&p, r.PostForm)
-	if err != nil {
-		logger.Err(ctx, err)
-		_ = util.SendError(ctx, w, err)
-		return
-	}
-
-	// todo do something with p
-	logger.Info(ctx, p)
-
-	// todo save p to database
-
-	// todo returns fails if not success
-
-	http.Redirect(w, r, "/profile/view", http.StatusFound)
-
-	_ = a.Tmpl.Execute(w, templateProfileEdit, p)
 }
 
 func (a *App) handleLogout(w http.ResponseWriter, r *http.Request) {

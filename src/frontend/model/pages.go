@@ -15,3 +15,13 @@ type SignupPage struct {
 	LoginURI       string
 	GoogleClientID string
 }
+
+type ProfileViewPage struct {
+	Profile
+	*ErrorPage
+}
+
+type ProfileEditPage struct {
+	Profile
+	*ErrorPage
+}
