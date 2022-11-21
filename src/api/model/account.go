@@ -8,7 +8,7 @@ import (
 )
 
 type Account struct {
-	Username       string    `json:"username"` // todo validate email only
+	Username       string    `json:"username"`
 	HashedPassword string    `json:"-"`
 	GoogleID       string    `json:"google_id"`
 	CreateAt       time.Time `json:"create_at"`
