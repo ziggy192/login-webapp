@@ -26,6 +26,7 @@ type MySQLConfig struct {
 	Schema                    string
 	User                      string
 	Password                  string
+	Option                    string
 	ConnectionLifetimeSeconds int
 	MaxIdleConnections        int
 	MaxOpenConnections        int
@@ -37,6 +38,7 @@ func NewMySQLConfig() *MySQLConfig {
 		Schema:                    util.GetEnvString("DB_SCHEMA", "ng_lu"),
 		User:                      util.GetEnvString("DB_USER", "ng_lu"),
 		Password:                  util.GetEnvString("DB_PASSWORD", "password"),
+		Option:                    util.GetEnvString("DB_OPTION", ""),
 		ConnectionLifetimeSeconds: util.GetEnvInt("DB_CONNECTION_LIFETIME_SECONDS", 300),
 		MaxIdleConnections:        util.GetEnvInt("DB_MAX_IDLE_CONNECTIONS", 10),
 		MaxOpenConnections:        util.GetEnvInt("DB_MAX_OPEN_CONNECTIONS", 20),

@@ -42,8 +42,13 @@ func NewDBStores(ctx context.Context, config *config.MySQLConfig) (*DBStores, er
 
 // ConnectMySQL setups connections to MySQL database
 func ConnectMySQL(ctx context.Context, config *config.MySQLConfig) (*sql.DB, error) {
+	option := config.Option
+	if len(option) == 0 {
+		option = mysqlOption
+	}
+
 	dsn := fmt.Sprintf("%s:%s@tcp(%s)/%s?%s", config.User, config.Password,
-		config.Server, config.Schema, mysqlOption)
+		config.Server, config.Schema, option)
 
 	db, err := sql.Open(mysqlDriver, dsn)
 	if err != nil {

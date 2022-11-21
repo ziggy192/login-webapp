@@ -19,14 +19,14 @@ const (
 )
 
 func GetEnvString(key string, fallback string) string {
-	apiRoot := os.Getenv(key)
-	if len(apiRoot) == 0 {
+	value := os.Getenv(key)
+	if len(value) == 0 {
 		if IsDevelopmentEnvironment() {
 			return fallback
 		}
 		panic(fmt.Errorf("undefined environment variable %s", key))
 	}
-	return apiRoot
+	return value
 }
 
 func GetEnvInt(key string, fallback int) int {
