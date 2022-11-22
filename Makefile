@@ -2,16 +2,6 @@ PWD = $(shell pwd)
 
 SRC = `go list -f {{.Dir}} ./... | grep -v /vendor/`
 
-install:
-	@echo "==> Installing tools..."
-	@go install golang.org/x/tools/...
-	@go install golang.org/x/lint/golint
-	@GO111MODULE=off go install github.com/golang/mock/mockgen
-	@GO111MODULE=off go install mvdan.cc/gofumpt/gofumports
-	@GO111MODULE=off go install github.com/daixiang0/gci
-	@brew install golangci/tap/golangci-lint
-	@brew upgrade golangci/tap/golangci-lint
-
 all: fmt lint test
 
 fmt:

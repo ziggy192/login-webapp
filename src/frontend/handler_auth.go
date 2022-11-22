@@ -250,9 +250,9 @@ func (a *App) handleAuth(w http.ResponseWriter, r *http.Request) {
 
 func (a *App) setAccessTokenCookie(w http.ResponseWriter, tokenResp *model.TokenResponse) {
 	http.SetCookie(w, &http.Cookie{
-		Name:  cookieKeyAccessToken,
-		Value: tokenResp.AccessToken,
-		//Secure:   true,
+		Name:     cookieKeyAccessToken,
+		Value:    tokenResp.AccessToken,
+		Secure:   true,
 		HttpOnly: true,
 	})
 }

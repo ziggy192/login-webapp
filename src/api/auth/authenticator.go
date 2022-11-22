@@ -14,6 +14,8 @@ import (
 
 const defaultIssuer = "ng_lu"
 
+var ErrTokenLoggedOut = errors.New("token is logged out")
+
 type Authenticator struct {
 	secret              []byte
 	expiresAfterMinutes int
@@ -36,18 +38,14 @@ func (a *Authenticator) SignUserJWT(ctx context.Context, username string) (strin
 		return "", err
 	}
 
-	tokenUUID, err := uuid.NewRandom()
-	if err != nil {
-		logger.Err(ctx, err)
-		return "", err
-	}
+	tokenUUID := uuid.NewString()
 
 	claims := jwt.RegisteredClaims{
 		Issuer:    defaultIssuer,
 		Subject:   username,
 		ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Duration(a.expiresAfterMinutes) * time.Minute)),
 		IssuedAt:  jwt.NewNumericDate(time.Now()),
-		ID:        tokenUUID.String(),
+		ID:        tokenUUID,
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 
@@ -73,11 +71,12 @@ func (a *Authenticator) VerifyUserJWT(ctx context.Context, tokenString string) (
 		return &claims, err
 	}
 	if blocked {
-		return &claims, errors.New("token is logged out")
+		return &claims, ErrTokenLoggedOut
 	}
 	return &claims, nil
 }
 
+// Logout invalidate the token and blocks its future usage
 func (a *Authenticator) Logout(ctx context.Context, tokenString string) error {
 	claims, _ := parseWithClaims(a.secret, tokenString)
 	var duration time.Duration
