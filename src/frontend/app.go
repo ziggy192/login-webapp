@@ -1,6 +1,7 @@
 package frontend
 
 import (
+	"bitbucket.org/ziggy192/ng_lu/src/frontend/api"
 	"bitbucket.org/ziggy192/ng_lu/src/frontend/config"
 	"bitbucket.org/ziggy192/ng_lu/src/logger"
 	"bitbucket.org/ziggy192/ng_lu/src/util"
@@ -10,25 +11,21 @@ import (
 )
 
 const (
-	pathLogin       = "/login"
-	pathLoginGoogle = "/login_google"
-	pathSignup      = "/signup"
-	pathLogout      = "/logout"
-	pathProfile     = "/profile"
-
-	headerAuthorization  = "Authorization"
 	cookieKeyAccessToken = "access_token"
 )
 
 type App struct {
-	Config *config.Config
-	Tmpl   *Template
+	Config    *config.Config
+	Tmpl      *Template
+	APIClient *api.Client
 }
 
 func NewApp() *App {
+	cfg := config.New()
 	a := &App{
-		Config: config.New(),
-		Tmpl:   NewTemplate(),
+		Config:    cfg,
+		Tmpl:      NewTemplate(),
+		APIClient: api.NewClient(cfg.APIRoot),
 	}
 	a.setupRoutes()
 	return a

@@ -21,7 +21,7 @@ func (a *App) handleProfileView(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	accessToken := cookie.Value
-	p, resp, err := a.fetchProfile(ctx, accessToken)
+	p, resp, err := a.APIClient.FetchProfile(ctx, accessToken)
 	if err != nil {
 		a.renderProfileViewpage(w, p, &model.ErrorPage{ErrorMessage: resp.Message})
 		return
@@ -75,7 +75,7 @@ func (a *App) handleGetProfileEdit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	accessToken := cookie.Value
-	p, resp, err := a.fetchProfile(ctx, accessToken)
+	p, resp, err := a.APIClient.FetchProfile(ctx, accessToken)
 	if err != nil {
 		a.renderProfileEditPage(w, p, &model.ErrorPage{ErrorMessage: resp.Message})
 		return
@@ -128,7 +128,7 @@ func (a *App) handlePostProfileEdit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	accessToken := cookie.Value
-	p, response, err := a.putProfile(ctx, accessToken, p)
+	p, response, err := a.APIClient.PutProfile(ctx, accessToken, p)
 
 	if response.StatusCode == http.StatusUnauthorized || response.StatusCode == http.StatusForbidden {
 		logger.Info(ctx, "unauthorized, redirect to login", "status", response.StatusCode)

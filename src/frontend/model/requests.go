@@ -1,6 +1,6 @@
 package model
 
 type AccountRequest struct {
-	Username string `json:"username"` // todo validate email only
+	Username string `json:"username"`
 	Password string `json:"password"`
 }

@@ -4,12 +4,9 @@ import (
 	"bitbucket.org/ziggy192/ng_lu/src/frontend/model"
 	"bitbucket.org/ziggy192/ng_lu/src/logger"
 	"bitbucket.org/ziggy192/ng_lu/src/util"
-	"bytes"
-	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
-	"strings"
 )
 
 func (a *App) handleGetLogin(w http.ResponseWriter, _ *http.Request) {
@@ -30,39 +27,12 @@ func (a *App) handlePostLogin(w http.ResponseWriter, r *http.Request) {
 		Username: r.PostFormValue("username"),
 		Password: r.PostFormValue("password"),
 	}
-	body, err := json.Marshal(acc)
-	if err != nil {
-		logger.Err(ctx, err)
-		_ = util.SendError(ctx, w, err)
-		return
-	}
-	request, err := http.NewRequest(http.MethodPost, a.Config.APIRoot+pathLogin, bytes.NewBuffer(body))
-	request.Header.Set(HeaderContentType, "application/json")
-	if err != nil {
-		logger.Err(ctx, err)
-		_ = util.SendError(ctx, w, err)
-		return
-	}
-	requestID := logger.GetRequestID(ctx)
-	if len(requestID) > 0 {
-		request.Header.Set(util.HeaderXRequestID, requestID)
-	}
-	resp, err := http.DefaultClient.Do(request)
-	if err != nil {
-		logger.Err(ctx, err)
-		_ = util.SendError(ctx, w, err)
-		return
-	}
-
-	var tokenResp = &model.TokenResponse{}
-	response, err := ParseResponse(ctx, resp, &tokenResp)
+	tokenResp, response, err := a.APIClient.Login(ctx, acc)
 	if err != nil {
 		logger.Err(ctx, err)
 		a.renderLoginPage(w, &model.ErrorPage{ErrorMessage: err.Error()})
 		return
 	}
-
-	logger.Info(ctx, "response", fmt.Sprintf("%+v", response))
 
 	if response.StatusCode == http.StatusUnauthorized || response.StatusCode == http.StatusForbidden {
 		logger.Info(ctx, "unauthorized", "status", response.StatusCode, "message", response.Message)
@@ -113,39 +83,12 @@ func (a *App) handlePostSignup(w http.ResponseWriter, r *http.Request) {
 		Username: r.PostFormValue("username"),
 		Password: r.PostFormValue("password"),
 	}
-	body, err := json.Marshal(acc)
+	tokenResp, response, err := a.APIClient.Signup(ctx, acc)
 	if err != nil {
 		logger.Err(ctx, err)
 		a.renderSignupPage(w, &model.ErrorPage{ErrorMessage: err.Error()})
 		return
 	}
-	request, err := http.NewRequest(http.MethodPost, a.Config.APIRoot+pathSignup, bytes.NewBuffer(body))
-	request.Header.Set(HeaderContentType, "application/json")
-	if err != nil {
-		logger.Err(ctx, err)
-		_ = util.SendError(ctx, w, err)
-		return
-	}
-	requestID := logger.GetRequestID(ctx)
-	if len(requestID) > 0 {
-		request.Header.Set(util.HeaderXRequestID, requestID)
-	}
-	resp, err := http.DefaultClient.Do(request)
-	if err != nil {
-		logger.Err(ctx, err)
-		_ = util.SendError(ctx, w, err)
-		return
-	}
-
-	var tokenResp = &model.TokenResponse{}
-	response, err := ParseResponse(ctx, resp, &tokenResp)
-	if err != nil {
-		logger.Err(ctx, err)
-		a.renderSignupPage(w, &model.ErrorPage{ErrorMessage: err.Error()})
-		return
-	}
-
-	logger.Info(ctx, "response", fmt.Sprintf("%+v", response))
 
 	if !util.StatusSuccess(response.StatusCode) {
 		logger.Err(ctx, "error from server", "response", fmt.Sprintf("%+v", response))
@@ -171,72 +114,21 @@ func (a *App) handleLogout(w http.ResponseWriter, r *http.Request) {
 	cookie.Value = ""
 	http.SetCookie(w, cookie)
 
-	request, err := http.NewRequest(http.MethodPost, a.Config.APIRoot+pathLogout, nil)
-	requestID := logger.GetRequestID(ctx)
-	if len(requestID) > 0 {
-		request.Header.Set(util.HeaderXRequestID, requestID)
+	if err = a.APIClient.Logout(ctx, accessToken); err != nil {
+		logger.Err(ctx, err) // logout error should not interrupt logout behaviour
 	}
 
-	if err != nil {
-		logger.Err(ctx, err)
-		_ = util.SendError(ctx, w, err)
-		return
-	}
-	request.Header.Set(headerAuthorization, "Bearer "+accessToken)
-	logger.Info(ctx, "request", request)
-	resp, err := http.DefaultClient.Do(request) // ignore response because logout error
-	if err != nil {
-		logger.Err(ctx, err) // error should not interrupt logout behavior
-	}
-	logger.Info(ctx, "response", resp)
 	http.Redirect(w, r, "/", http.StatusFound)
 }
 
 func (a *App) handleAuth(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	err := r.ParseForm()
-	if err != nil {
-		logger.Err(ctx, err)
-		_ = util.SendError(ctx, w, err)
-	}
-
-	request, err := http.NewRequest(http.MethodPost, a.Config.APIRoot+pathLoginGoogle, strings.NewReader(r.PostForm.Encode()))
+	tokenResp, resp, err := a.APIClient.ForwardGoogleAuth(ctx, r)
 	if err != nil {
 		logger.Err(ctx, err)
 		_ = util.SendError(ctx, w, err)
 		return
 	}
-	requestID := logger.GetRequestID(ctx)
-	if len(requestID) > 0 {
-		request.Header.Set(util.HeaderXRequestID, requestID)
-	}
-	request.Header.Add(HeaderContentType, "application/x-www-form-urlencoded")
-
-	csrfTokenCookie, err := r.Cookie("g_csrf_token")
-	if err != nil {
-		_ = util.SendJSON(ctx, w, 400, "no CSRF token in Cookie", nil)
-		return
-	}
-
-	request.AddCookie(&http.Cookie{
-		Name:   csrfTokenCookie.Name,
-		Value:  csrfTokenCookie.Value,
-		MaxAge: csrfTokenCookie.MaxAge,
-	})
-	response, err := http.DefaultClient.Do(request)
-	if err != nil {
-		logger.Err(ctx, err)
-		_ = util.SendError(ctx, w, err)
-		return
-	}
-	var tokenResp = &model.TokenResponse{}
-	resp, err := ParseResponse(ctx, response, &tokenResp)
-	if err != nil {
-		logger.Err(ctx, err)
-		_ = util.SendError(ctx, w, err)
-		return
-	}
-	logger.Info(ctx, "response", fmt.Sprintf("%+v", resp))
 
 	if !util.StatusSuccess(resp.StatusCode) {
 		logger.Err(ctx, "error authentication from server", "response", *resp)

@@ -97,20 +97,19 @@ func (a *App) handleSignup(w http.ResponseWriter, r *http.Request) {
 
 func (a *App) handleLoginGoogle(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	logger.Info(ctx, "url", r.URL)
 	csrfTokenCookie, err := r.Cookie("g_csrf_token")
 	if err != nil {
-		_ = util.SendJSON(ctx, w, 400, "no CSRF token in Cookie", nil)
+		_ = util.SendJSON(ctx, w, http.StatusBadRequest, "no CSRF token in Cookie", nil)
 		return
 	}
 	csrfTokenBody := r.PostFormValue("g_csrf_token")
 	if len(csrfTokenBody) == 0 {
-		_ = util.SendJSON(ctx, w, 400, "no CSRF token in post body", nil)
+		_ = util.SendJSON(ctx, w, http.StatusBadRequest, "no CSRF token in post body", nil)
 		return
 	}
 
 	if csrfTokenBody != csrfTokenCookie.Value {
-		_ = util.SendJSON(ctx, w, 400, "failed to verify double submit cookie", nil)
+		_ = util.SendJSON(ctx, w, http.StatusBadRequest, "failed to verify double submit cookie", nil)
 		return
 	}
 
@@ -122,7 +121,7 @@ func (a *App) handleLoginGoogle(w http.ResponseWriter, r *http.Request) {
 	tokenPayload, err := idtoken.Validate(ctx, credential, "588338350106-u3e7ddin0njjervl05577fioq678nbi5.apps.googleusercontent.com")
 	if err != nil {
 		logger.Err(ctx, err)
-		_ = util.SendJSON(ctx, w, 401, "Invalid ID Token", nil)
+		_ = util.SendJSON(ctx, w, http.StatusUnauthorized, "Invalid ID Token", nil)
 		return
 	}
 
@@ -170,6 +169,7 @@ func (a *App) handleLogout(w http.ResponseWriter, r *http.Request) {
 	err := a.Authenticator.Logout(ctx, tokenString)
 	if err != nil {
 		_ = util.SendError(ctx, w, err)
+		return
 	}
 	_ = util.SendJSON(ctx, w, http.StatusOK, "logged out successfully", nil)
 }

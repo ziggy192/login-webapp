@@ -1,4 +1,4 @@
-package frontend
+package api
 
 import (
 	"bitbucket.org/ziggy192/ng_lu/src/logger"
@@ -12,10 +12,7 @@ import (
 	"time"
 )
 
-const HeaderContentType = "Content-Type"
-const ContentTypeJSON = "application/json"
-
-// Response is a telco response data
+// Response is a response data
 type Response struct {
 	StatusCode  int       `json:"status_code"`
 	ContentType string    `json:"content_type"`
@@ -31,7 +28,7 @@ type parsedBody struct {
 	Data    any
 }
 
-// EmptyResponse is an empty telco response
+// EmptyResponse is an empty response
 var EmptyResponse = &Response{}
 
 // ParseResponse parses http response to struct
