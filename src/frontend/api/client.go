@@ -25,6 +25,7 @@ const (
 	ContentTypeEncodedForm = "application/x-www-form-urlencoded"
 )
 
+// Client for backend REST API endpoints
 type Client struct {
 	apiRoot string
 }
