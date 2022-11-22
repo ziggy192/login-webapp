@@ -83,6 +83,8 @@ style requires seeding data before tests. I chose to go with real database.
 support [Go Concurrency Pattern with Context](https://go.dev/blog/context)
 and [OpenTelemetry](https://opentelemetry.io/) tracing using a `request-id`.
 
+**Use format and linter** as a passive way to follow standard Golang coding conventions.
+
 ### Contacts ###
 
 nghialuu.it@gmail.com
