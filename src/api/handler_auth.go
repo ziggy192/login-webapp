@@ -28,7 +28,7 @@ func (a *App) handleLogin(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if acc == nil {
-		_ = util.SendJSON(ctx, w, http.StatusUnauthorized, "username entered does not exist", nil)
+		_ = util.SendJSON(ctx, w, http.StatusNotFound, "username entered does not exist", nil)
 		return
 	}
 

@@ -10,6 +10,7 @@ import (
 )
 
 const AuthorizationHeader = "Authorization"
+const AuthorizationBearer = "Bearer"
 
 type AuthMiddleware struct {
 	Authenticator *auth.Authenticator
@@ -23,13 +24,26 @@ func (a *AuthMiddleware) Middleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		logger.Info(ctx, "authentication middleware")
-		bearerToken := r.Header.Get(AuthorizationHeader)
-		if len(bearerToken) == 0 {
+		authorizationHeader := r.Header.Get(AuthorizationHeader)
+		if len(authorizationHeader) == 0 {
 			_ = util.SendJSON(ctx, w, http.StatusUnauthorized, "no token found", nil)
 			return
 		}
 
-		tokenString := strings.TrimPrefix(bearerToken, "Bearer ")
+		fields := strings.Fields(authorizationHeader)
+		if len(fields) < 2 {
+			_ = util.SendJSON(ctx, w, http.StatusUnauthorized, "invalid authorization header format", nil)
+			return
+		}
+
+		authorizationType := fields[0]
+		if strings.ToLower(authorizationType) != strings.ToLower(AuthorizationBearer) {
+			msg := fmt.Sprintf("unsupported authorization type %s", authorizationType)
+			_ = util.SendJSON(ctx, w, http.StatusUnauthorized, msg, nil)
+			return
+		}
+
+		tokenString := fields[1]
 		claims, err := a.Authenticator.VerifyUserJWT(ctx, tokenString)
 		if err != nil {
 			logger.Err(ctx, err)

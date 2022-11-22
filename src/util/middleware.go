@@ -12,9 +12,13 @@ const HeaderXRequestID = "X-REQUEST-ID"
 
 func LoggingMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		body, _ := io.ReadAll(r.Body)
+		var body []byte
+		if r.Body != nil {
+			body, _ = io.ReadAll(r.Body)
+			r.Body = io.NopCloser(bytes.NewBuffer(body))
+		}
+
 		logger.Info(r.Context(), "request", r.RemoteAddr, r.Method, r.URL, string(body))
-		r.Body = io.NopCloser(bytes.NewBuffer(body))
 		next.ServeHTTP(w, r)
 	})
 }

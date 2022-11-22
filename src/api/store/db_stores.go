@@ -7,12 +7,16 @@ import (
 	"database/sql"
 	"fmt"
 	_ "github.com/go-sql-driver/mysql"
+	"os"
 	"time"
 )
 
 const (
 	mysqlDriver = "mysql"
 	mysqlOption = "charset=utf8&parseTime=True&loc=Local&multiStatements=True&maxAllowedPacket=0"
+
+	dropDBPath = "schema/drop_db.sql"
+	initDBPath = "schema/init_db.sql"
 )
 
 // DBStores defines struct for stores
@@ -64,11 +68,40 @@ func ConnectMySQL(ctx context.Context, config *config.MySQLConfig) (*sql.DB, err
 	return db, nil
 }
 
-func (d *DBStores) Ping(ctx context.Context) error {
-	return d.DB.PingContext(ctx)
+func (s *DBStores) Ping(ctx context.Context) error {
+	return s.DB.PingContext(ctx)
 }
 
 // Close current db connection
 func (s *DBStores) Close() error {
 	return s.DB.Close()
+}
+
+// Reset drops the databases and recreates it, only for testing purposes
+// Must not be used in production
+func (s *DBStores) Reset(ctx context.Context) error {
+	err := ExecuteSQLFile(ctx, s.DB, dropDBPath)
+	if err != nil {
+		return err
+	}
+
+	return ExecuteSQLFile(ctx, s.DB, initDBPath)
+}
+
+// ExecuteSQLFile executes a specific file on a MySQL database
+func ExecuteSQLFile(ctx context.Context, db *sql.DB, filePath string) error {
+	migrationSQL, err := os.ReadFile(filePath)
+	if err != nil {
+		logger.Err(ctx, err)
+		return err
+	}
+
+	_, err = db.ExecContext(ctx, string(migrationSQL))
+	if err != nil {
+		logger.Err(ctx, err)
+		return err
+	}
+
+	logger.Info(ctx, "migrated", filePath)
+	return nil
 }

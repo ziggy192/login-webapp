@@ -34,8 +34,8 @@ func (a *App) handlePostLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if response.StatusCode == http.StatusUnauthorized || response.StatusCode == http.StatusForbidden {
-		logger.Info(ctx, "unauthorized", "status", response.StatusCode, "message", response.Message)
+	if util.StatusClientError(response.StatusCode) {
+		logger.Info(ctx, "client error", "status", response.StatusCode, "message", response.Message)
 		a.renderLoginPage(w, &model.ErrorPage{ErrorMessage: response.Message})
 		return
 	}

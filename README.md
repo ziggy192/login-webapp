@@ -19,5 +19,16 @@ Start frontend server
 make frontend
 ```
 
+### How to test 
+Start docker compose for db and redis
+```shell
+make up
+```
+
+Run tests
+```shell
+make test
+```
+
 ### Contacts ###
 nghialuu.it@gmail.com

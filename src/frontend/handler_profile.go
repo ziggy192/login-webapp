@@ -33,12 +33,7 @@ func (a *App) handleProfileView(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if resp.StatusCode == http.StatusNotFound {
-		a.renderProfileViewpage(w, p, &model.ErrorPage{ErrorMessage: "profile not yet created, please edit and save a profile"})
-		return
-	}
-
-	if !util.StatusSuccess(resp.StatusCode) {
+	if !util.StatusSuccess(resp.StatusCode) && resp.StatusCode != http.StatusNotFound {
 		logger.Err(ctx, "error from server", "response", *resp)
 		a.renderProfileViewpage(w, p, &model.ErrorPage{ErrorMessage: resp.Message})
 		return

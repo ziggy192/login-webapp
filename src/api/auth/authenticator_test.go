@@ -2,8 +2,7 @@ package auth
 
 import (
 	"bitbucket.org/ziggy192/ng_lu/src/api/config"
-	"bitbucket.org/ziggy192/ng_lu/src/logger"
-	"context"
+	"bitbucket.org/ziggy192/ng_lu/src/api/test"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
 	"testing"
@@ -13,7 +12,7 @@ import (
 func TestAuthenticator_SignAndVerifyJWT(t *testing.T) {
 	t.Parallel()
 
-	ctx := newTestCtx(t)
+	ctx := test.NewContext(t)
 
 	validDuration := 60 * time.Minute
 
@@ -32,10 +31,10 @@ func TestAuthenticator_SignAndVerifyJWT(t *testing.T) {
 		TokenString string
 		ExpectValid bool
 	}{
-		{"valid", validTokenString, true},
-		{"invalid", invalidSignatureToken, false},
-		{"expired", expiredToken, false},
-		{"none_algorithm", noneToken, false},
+		{"Valid", validTokenString, true},
+		{"Invalid", invalidSignatureToken, false},
+		{"Expired", expiredToken, false},
+		{"NoneAlgorithm", noneToken, false},
 	}
 
 	for _, testCase := range testCases {
@@ -61,7 +60,7 @@ func TestAuthenticator_SignAndVerifyJWT(t *testing.T) {
 
 func TestAuthenticator_Logout(t *testing.T) {
 	t.Parallel()
-	ctx := newTestCtx(t)
+	ctx := test.NewContext(t)
 
 	authenticator := NewAuthenticator(config.New(), redisClient)
 	authenticator.expiresAfterMinutes = 60
@@ -78,8 +77,4 @@ func TestAuthenticator_Logout(t *testing.T) {
 	_, err = authenticator.VerifyUserJWT(ctx, tokenString)
 	require.Error(t, err)
 	require.ErrorIs(t, err, ErrTokenLoggedOut)
-}
-
-func newTestCtx(t *testing.T) context.Context {
-	return logger.SaveRequestID(context.Background(), t.Name())
 }

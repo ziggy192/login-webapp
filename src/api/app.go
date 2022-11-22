@@ -17,6 +17,7 @@ type App struct {
 	DBStores      *store.DBStores
 	RedisClient   *redis.Redis
 	Authenticator *auth.Authenticator
+	router        *mux.Router
 }
 
 func NewApp(ctx context.Context) (*App, error) {
@@ -63,7 +64,8 @@ func (a *App) setupRoutes() {
 	r.Use(util.RequestIDMiddleware)
 	r.Use(util.LoggingMiddleware)
 
-	http.Handle("/", r)
+	a.router = r
+	//http.Handle("/", r)
 }
 
 func (a *App) Start(ctx context.Context) error {
@@ -74,7 +76,7 @@ func (a *App) Start(ctx context.Context) error {
 	}
 
 	logger.Info(context.Background(), "listening on port", a.Config.Port)
-	return http.ListenAndServe(":"+a.Config.Port, nil)
+	return http.ListenAndServe(":"+a.Config.Port, a.router)
 }
 
 // Stop stops app

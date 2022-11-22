@@ -8,18 +8,24 @@ import (
 	"time"
 )
 
+type BaseResponse struct {
+	Message string `json:"message"`
+	Time    string `json:"time"`
+	Data    any    `json:"data"`
+}
+
 // SendJSON encodes data as JSON object and returns it to client
 func SendJSON(ctx context.Context, w http.ResponseWriter, statusCode int, message string, data interface{}) error {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(statusCode)
 
-	obj := map[string]any{
-		"message": message,
-		"data":    data,
-		"time":    time.Now().Format(time.RFC3339),
+	resp := BaseResponse{
+		Message: message,
+		Data:    data,
+		Time:    time.Now().Format(time.RFC3339),
 	}
 
-	body, err := json.Marshal(obj)
+	body, err := json.Marshal(resp)
 	if err != nil {
 		logger.Err(ctx, "cannot marshal response data:", err)
 		return err
@@ -41,4 +47,8 @@ func SendError(ctx context.Context, w http.ResponseWriter, err error) error {
 
 func StatusSuccess(statusCode int) bool {
 	return statusCode >= 200 && statusCode < 300
+}
+
+func StatusClientError(statusCode int) bool {
+	return statusCode >= 400 && statusCode < 500
 }
